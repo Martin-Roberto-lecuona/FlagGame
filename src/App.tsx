@@ -117,10 +117,10 @@ const App: React.FC = () => {
   return (
     <div className="App">
       <h1>Juego de Banderas</h1>
-      <div className="flag-card">
+      <div className="flag-card">        
         {availableCountries.length}
         <br />
-        <img src={currentCountry.flagUrl} style={{ width: "300px" }} alt={`Bandera de ${currentCountry.name}`} />
+        <img src={currentCountry.flagUrl} style={{ width: "300px" }} />
       </div>
 
       {feedback && <p className={isCorrect ? "correct" : "incorrect"}>{feedback}</p>}
