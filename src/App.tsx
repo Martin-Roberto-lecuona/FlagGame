@@ -17,19 +17,22 @@ const App: React.FC = () => {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [finalScore, setFinalScore] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null); // Mensaje de retroalimentación
-
+  const [availableCountries, setAvailableCountries] = useState<Country[]>([]); 
   // Fetch countries data
   useEffect(() => {
     const fetchCountries = async () => {
       const response = await fetch("https://flagcdn.com/es/codes.json");
       const countryCodes = await response.json();
-      const countryList = Object.entries(countryCodes).map(([code, name]) => ({
+      const countryList = Object.entries(countryCodes)
+      .filter(([code]) => !code.startsWith("us-"))
+      .map(([code, name]) => ({
         code,
         name: name as string,
         flagUrl: `https://flagcdn.com/w640/${code}.webp`,
       }));
       setCountries(countryList);
       setCurrentCountry(countryList[Math.floor(Math.random() * countryList.length)]);
+      setAvailableCountries(countryList);
     };
 
     fetchCountries();
@@ -37,11 +40,19 @@ const App: React.FC = () => {
   }, []);
 
   const getRandomCountry = () => {
-    return countries[Math.floor(Math.random() * countries.length)];
+    if (availableCountries.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * availableCountries.length);
+    const selectedCountry = availableCountries[randomIndex];
+    setAvailableCountries(prev => prev.filter((_, index) => index !== randomIndex));
+    return selectedCountry;
   };
   const normalizeText = (text: string): string => {
-    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return text
+      .normalize("NFD") // Descompone caracteres con tildes
+      .replace(/[\u0300-\u036f]/g, "") // Elimina marcas diacríticas
+      .trim();
   };
+  
   const validateInput = () => {
     if (
       currentCountry &&
@@ -107,6 +118,8 @@ const App: React.FC = () => {
     <div className="App">
       <h1>Juego de Banderas</h1>
       <div className="flag-card">
+        {availableCountries.length}
+        <br />
         <img src={currentCountry.flagUrl} style={{ width: "300px" }} alt={`Bandera de ${currentCountry.name}`} />
       </div>
 
