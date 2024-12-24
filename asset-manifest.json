@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/FlagGame/static/css/main.63c8f173.css",
-    "main.js": "/FlagGame/static/js/main.cd843da5.js",
+    "main.js": "/FlagGame/static/js/main.a9bd4cf9.js",
     "index.html": "/FlagGame/index.html",
     "main.63c8f173.css.map": "/FlagGame/static/css/main.63c8f173.css.map",
-    "main.cd843da5.js.map": "/FlagGame/static/js/main.cd843da5.js.map"
+    "main.a9bd4cf9.js.map": "/FlagGame/static/js/main.a9bd4cf9.js.map"
   },
   "entrypoints": [
     "static/css/main.63c8f173.css",
-    "static/js/main.cd843da5.js"
+    "static/js/main.a9bd4cf9.js"
   ]
 }
