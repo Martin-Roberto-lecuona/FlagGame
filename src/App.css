@@ -1,0 +1,90 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f4f4f4;
+}
+
+.App {
+  text-align: center;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  max-width: 400px;
+  width: 90%;
+}
+
+.flag-card {
+  margin: 20px 0;
+}
+
+img {
+  max-width: 100%;
+  border-radius: 10px;
+}
+
+.input-mode, .options-mode {
+  margin-top: 20px;
+}
+
+input {
+  width: calc(100% - 20px);
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+button {
+  padding: 10px 15px;
+  margin: 10px 5px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #ddd;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.scoreboard {
+  margin-top: 20px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.correct {
+  color: #28a745;
+}
+
+.incorrect {
+  color: #dc3545;
+}
+
+.flag-card span {
+  display: block;
+  font-size: 5rem;
+  margin-bottom: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .App {
+    padding: 15px;
+  }
+
+  button {
+    width: calc(100% - 20px);
+    margin: 10px auto;
+  }
+}
