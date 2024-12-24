@@ -16,7 +16,7 @@ const App: React.FC = () => {
   const [userInput, setUserInput] = useState("");
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [finalScore, setFinalScore] = useState(0);
-
+  const [feedback, setFeedback] = useState<string | null>(null); // Mensaje de retroalimentación
 
   // Fetch countries data
   useEffect(() => {
@@ -33,29 +33,39 @@ const App: React.FC = () => {
     };
 
     fetchCountries();
-    setIsCorrect(null)
+    setIsCorrect(null);
   }, []);
 
   const getRandomCountry = () => {
     return countries[Math.floor(Math.random() * countries.length)];
   };
-
+  const normalizeText = (text: string): string => {
+    return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  };
   const validateInput = () => {
-    if (currentCountry && userInput.toLowerCase() === currentCountry.name.toLowerCase()) {
+    if (
+      currentCountry &&
+      normalizeText(userInput.toLowerCase()) === normalizeText(currentCountry.name.toLowerCase())
+    ) {
       setScore((prev) => ({ ...prev, correct: prev.correct + 1 }));
-      setIsCorrect(true)
-      setFinalScore(finalScore + 2)
+      setIsCorrect(true);
+      setFeedback("¡Correcto!");
+      setFinalScore((prev) => prev + 2);
     } else {
       setScore((prev) => ({ ...prev, incorrect: prev.incorrect + 1 }));
-      setIsCorrect(false)
+      setIsCorrect(false);
+      setFeedback(`¡Incorrecto! Era: ${currentCountry?.name}`);
     }
     nextQuestion();
   };
 
   const nextQuestion = () => {
-    setCurrentCountry(getRandomCountry());
-    setUserInput("");
-    setInputMode(true);
+    setTimeout(() => {
+      setCurrentCountry(getRandomCountry());
+      setUserInput("");
+      setFeedback(null);
+      setInputMode(true);
+    }, 1500); // Espera 1.5 segundos antes de pasar a la siguiente bandera
   };
 
   const generateOptions = () => {
@@ -73,13 +83,18 @@ const App: React.FC = () => {
   };
 
   const handleOptionClick = (option: string) => {
-    if (currentCountry && option === currentCountry.name) {
+    if (
+      currentCountry &&
+      normalizeText(option.toLowerCase()) === normalizeText(currentCountry.name.toLowerCase())
+    ) {
       setScore((prev) => ({ ...prev, correct: prev.correct + 1 }));
-      setIsCorrect(true)
-      setFinalScore(finalScore + 1)
+      setIsCorrect(true);
+      setFeedback("¡Correcto!");
+      setFinalScore((prev) => prev + 1);
     } else {
       setScore((prev) => ({ ...prev, incorrect: prev.incorrect + 1 }));
-      setIsCorrect(false)
+      setIsCorrect(false);
+      setFeedback(`¡Incorrecto! Era: ${currentCountry?.name}`);
     }
     nextQuestion();
   };
@@ -92,14 +107,10 @@ const App: React.FC = () => {
     <div className="App">
       <h1>Juego de Banderas</h1>
       <div className="flag-card">
-        <img src={currentCountry.flagUrl} alt={`Bandera de ${currentCountry.name}`} style={{ width: "300px" }} />
+        <img src={currentCountry.flagUrl} style={{ width: "300px" }} alt={`Bandera de ${currentCountry.name}`} />
       </div>
-      
-      {isCorrect !== null && (
-        <p className={isCorrect ? "correct" : "incorrect"}>
-          {isCorrect ? "¡Correcto!" : "¡Incorrecto!"}
-        </p>
-      )}
+
+      {feedback && <p className={isCorrect ? "correct" : "incorrect"}>{feedback}</p>}
 
       {inputMode ? (
         <div className="input-mode">
