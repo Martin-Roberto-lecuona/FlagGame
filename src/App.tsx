@@ -9,51 +9,61 @@ interface Country {
 
 const App: React.FC = () => {
   const [countries, setCountries] = useState<Country[]>([]);
-  const [currentCountry, setCurrentCountry] = useState<Country | null>(null);
+  const [randomizedCountries, setRandomizedCountries] = useState<Country[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [inputMode, setInputMode] = useState(true);
   const [score, setScore] = useState({ correct: 0, incorrect: 0 });
   const [options, setOptions] = useState<string[]>([]);
   const [userInput, setUserInput] = useState("");
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [finalScore, setFinalScore] = useState(0);
-  const [feedback, setFeedback] = useState<string | null>(null); // Mensaje de retroalimentación
-  const [availableCountries, setAvailableCountries] = useState<Country[]>([]); 
-  // Fetch countries data
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [numCountries, setNumCountries] = useState<number | null>(null); // Número de países seleccionados
+  const [gameStarted, setGameStarted] = useState(false); 
+  const [maxScore, setMaxScore] = useState<number>(0);
+
+  useEffect(() => {
+    const storedMaxScore = localStorage.getItem("maxScore");
+    if (storedMaxScore) {
+      setMaxScore(parseInt(storedMaxScore, 10));
+    }
+  }, []);
+
   useEffect(() => {
     const fetchCountries = async () => {
       const response = await fetch("https://flagcdn.com/es/codes.json");
       const countryCodes = await response.json();
       const countryList = Object.entries(countryCodes)
-      .filter(([code]) => !code.startsWith("us-"))
-      .map(([code, name]) => ({
-        code,
-        name: name as string,
-        flagUrl: `https://flagcdn.com/w640/${code}.webp`,
-      }));
+        .filter(([code]) => !code.startsWith("us-"))
+        .map(([code, name]) => ({
+          code,
+          name: name as string,
+          flagUrl: `https://flagcdn.com/w640/${code}.webp`,
+        }));
       setCountries(countryList);
-      setCurrentCountry(countryList[Math.floor(Math.random() * countryList.length)]);
-      setAvailableCountries(countryList);
     };
 
     fetchCountries();
     setIsCorrect(null);
   }, []);
 
-  const getRandomCountry = () => {
-    if (availableCountries.length === 0) return null;
-    const randomIndex = Math.floor(Math.random() * availableCountries.length);
-    const selectedCountry = availableCountries[randomIndex];
-    setAvailableCountries(prev => prev.filter((_, index) => index !== randomIndex));
-    return selectedCountry;
+  const startGame = () => {
+    if (numCountries !== null && numCountries >= 5 && numCountries <= countries.length) {
+      const shuffledCountries = countries.sort(() => Math.random() - 0.5).slice(0, numCountries);
+      setRandomizedCountries(shuffledCountries);
+      setGameStarted(true);
+    }
   };
+
   const normalizeText = (text: string): string => {
     return text
-      .normalize("NFD") // Descompone caracteres con tildes
-      .replace(/[\u0300-\u036f]/g, "") // Elimina marcas diacríticas
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .trim();
   };
-  
+
   const validateInput = () => {
+    const currentCountry = randomizedCountries[currentIndex];
     if (
       currentCountry &&
       normalizeText(userInput.toLowerCase()) === normalizeText(currentCountry.name.toLowerCase())
@@ -72,14 +82,26 @@ const App: React.FC = () => {
 
   const nextQuestion = () => {
     setTimeout(() => {
-      setCurrentCountry(getRandomCountry());
-      setUserInput("");
-      setFeedback(null);
-      setInputMode(true);
-    }, 1500); // Espera 1.5 segundos antes de pasar a la siguiente bandera
+      if (currentIndex < randomizedCountries.length - 1) {
+        setCurrentIndex((prevIndex) => prevIndex + 1);
+        setUserInput("");
+        setFeedback(null);
+        setInputMode(true);
+      } else {
+        setFeedback("¡Juego terminado!");
+        checkMaxScore(); 
+      }
+    }, 1500);
+  };
+  const checkMaxScore = () => {
+    if (finalScore > maxScore) {
+      setMaxScore(finalScore);
+      localStorage.setItem("maxScore", finalScore.toString()); 
+    }
   };
 
   const generateOptions = () => {
+    const currentCountry = randomizedCountries[currentIndex];
     if (!currentCountry) return;
 
     const correctOption = currentCountry.name;
@@ -94,6 +116,7 @@ const App: React.FC = () => {
   };
 
   const handleOptionClick = (option: string) => {
+    const currentCountry = randomizedCountries[currentIndex];
     if (
       currentCountry &&
       normalizeText(option.toLowerCase()) === normalizeText(currentCountry.name.toLowerCase())
@@ -110,15 +133,37 @@ const App: React.FC = () => {
     nextQuestion();
   };
 
-  if (!currentCountry) {
+  if (!gameStarted) {
+    return (
+      <div className="App">
+        <h1>Juego de Banderas</h1>
+        <p>¿Con cuántos países quieres jugar? (5 hasta {countries.length})</p>
+        <input
+          type="number"
+          value={numCountries ?? ""}
+          onChange={(e) => setNumCountries(Number(e.target.value))}
+          min={5}
+          max={countries.length}
+          placeholder="Ingresa un número"
+        />
+        <button onClick={startGame} disabled={numCountries === null || numCountries < 5 || numCountries > countries.length}>
+          Comenzar juego
+        </button>
+      </div>
+    );
+  }
+
+  if (randomizedCountries.length === 0) {
     return <div>Cargando datos...</div>;
   }
+
+  const currentCountry = randomizedCountries[currentIndex];
 
   return (
     <div className="App">
       <h1>Juego de Banderas</h1>
-      <div className="flag-card">        
-        {availableCountries.length}
+      <div className="flag-card">
+        {randomizedCountries.length - currentIndex} restantes
         <br />
         <img src={currentCountry.flagUrl} style={{ width: "300px" }} />
       </div>
@@ -148,9 +193,11 @@ const App: React.FC = () => {
         Pedir opciones
       </button>
       <div className="scoreboard">
+        {checkMaxScore()}
         <p>Aciertos: {score.correct}</p>
         <p>Errores: {score.incorrect}</p>
         <p>SCORE: {finalScore}</p>
+        <p>Record: {maxScore}</p>
       </div>
     </div>
   );
