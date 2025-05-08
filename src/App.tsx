@@ -10,17 +10,20 @@ interface Country {
 const App: React.FC = () => {
   const [countries, setCountries] = useState<Country[]>([]);
   const [randomizedCountries, setRandomizedCountries] = useState<Country[]>([]);
+  const [usedCountries, setUsedCountries] = useState<Set<string>>(new Set()); // Países utilizados
   const [currentIndex, setCurrentIndex] = useState(0);
   const [inputMode, setInputMode] = useState(true);
   const [score, setScore] = useState({ correct: 0, incorrect: 0 });
   const [options, setOptions] = useState<string[]>([]);
   const [userInput, setUserInput] = useState("");
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const [finalScore, setFinalScore] = useState(0);
+  const [finalScore, setFinalScore] = useState(Number);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [numCountries, setNumCountries] = useState<number | null>(null); // Número de países seleccionados
-  const [gameStarted, setGameStarted] = useState(false); 
+  const [gameStarted, setGameStarted] = useState(false);
+  const [allreadyAsk, setAllreadyAsk] = useState(false);
   const [maxScore, setMaxScore] = useState<number>(0);
+
 
   useEffect(() => {
     const storedMaxScore = localStorage.getItem("maxScore");
@@ -49,9 +52,22 @@ const App: React.FC = () => {
 
   const startGame = () => {
     if (numCountries !== null && numCountries >= 5 && numCountries <= countries.length) {
-      const shuffledCountries = countries.sort(() => Math.random() - 0.5).slice(0, numCountries);
+      const availableCountries = countries.filter((country) => !usedCountries.has(country.code));
+      if (availableCountries.length < numCountries) {
+        alert("No hay suficientes países disponibles para una nueva partida.");
+        return;
+      }
+      const shuffledCountries = availableCountries
+        .sort(() => Math.random() - 0.5)
+        .slice(0, numCountries);
       setRandomizedCountries(shuffledCountries);
+      setUsedCountries((prev) => new Set([...prev, ...shuffledCountries.map((c) => c.code)]));
       setGameStarted(true);
+      setCurrentIndex(0);
+      setScore({ correct: 0, incorrect: 0 });
+      setFinalScore(0);
+      setFeedback(null);
+      setUserInput("");
     }
   };
 
@@ -87,20 +103,24 @@ const App: React.FC = () => {
         setUserInput("");
         setFeedback(null);
         setInputMode(true);
+        setAllreadyAsk(false)
       } else {
         setFeedback("¡Juego terminado!");
-        checkMaxScore(); 
+        setAllreadyAsk(false)
       }
     }, 1500);
-  };
-  const checkMaxScore = () => {
-    if (finalScore > maxScore) {
-      setMaxScore(finalScore);
-      localStorage.setItem("maxScore", finalScore.toString()); 
-    }
+    
   };
 
+  useEffect(() => {
+    if (finalScore > maxScore) {
+      setMaxScore(finalScore);
+      localStorage.setItem("maxScore", finalScore.toString());
+    }
+  }, [finalScore, maxScore]);
+  
   const generateOptions = () => {
+    setAllreadyAsk(true)
     const currentCountry = randomizedCountries[currentIndex];
     if (!currentCountry) return;
 
@@ -133,72 +153,68 @@ const App: React.FC = () => {
     nextQuestion();
   };
 
-  if (!gameStarted) {
-    return (
-      <div className="App">
-        <h1>Juego de Banderas</h1>
-        <p>¿Con cuántos países quieres jugar? (5 hasta {countries.length})</p>
-        <input
-          type="number"
-          value={numCountries ?? ""}
-          onChange={(e) => setNumCountries(Number(e.target.value))}
-          min={5}
-          max={countries.length}
-          placeholder="Ingresa un número"
-        />
-        <button onClick={startGame} disabled={numCountries === null || numCountries < 5 || numCountries > countries.length}>
-          Comenzar juego
-        </button>
-      </div>
-    );
-  }
-
-  if (randomizedCountries.length === 0) {
-    return <div>Cargando datos...</div>;
-  }
-
-  const currentCountry = randomizedCountries[currentIndex];
-
   return (
     <div className="App">
-      <h1>Juego de Banderas</h1>
-      <div className="flag-card">
-        {randomizedCountries.length - currentIndex} restantes
-        <br />
-        <img src={currentCountry.flagUrl} style={{ width: "300px" }} />
-      </div>
-
-      {feedback && <p className={isCorrect ? "correct" : "incorrect"}>{feedback}</p>}
-
-      {inputMode ? (
-        <div className="input-mode">
+      {!gameStarted ? (
+        <div>
+          <h1>Juego de Banderas</h1>
+          <p>¿Con cuántos países quieres jugar? (5 hasta {countries.length})</p>
           <input
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            placeholder="Escribe el nombre del país"
+            type="number"
+            value={numCountries ?? ""}
+            onChange={(e) => setNumCountries(Number(e.target.value))}
+            min={5}
+            max={countries.length}
+            placeholder="Ingresa un número"
           />
-          <button onClick={validateInput}>Validar</button>
+          <button onClick={startGame} disabled={numCountries === null || numCountries < 5 || numCountries > countries.length}>
+            Comenzar juego
+          </button>
+          <p>Record actual: {maxScore}</p>
         </div>
       ) : (
-        <div className="options-mode">
-          {options.map((option) => (
-            <button key={option} onClick={() => handleOptionClick(option)}>
-              {option}
-            </button>
-          ))}
+        <div>
+          <h1>Juego de Banderas</h1>
+          <div className="flag-card">
+            {randomizedCountries.length - currentIndex} restantes
+            <br />
+            <img src={randomizedCountries[currentIndex]?.flagUrl} alt="Bandera" style={{ width: "300px" }} />
+          </div>
+          {feedback && <p className={isCorrect ? "correct" : "incorrect"}>{feedback}</p>}
+          {inputMode ? (
+            <div>
+              <input
+                type="text"
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                placeholder="Escribe el nombre del país"
+              />
+              <button onClick={validateInput}>Validar</button>
+            </div>
+          ) : (
+            <div>
+              {options.map((option) => (
+                <button key={option} onClick={() => handleOptionClick(option)}>
+                  {option}
+                </button>
+              ))}
+            </div>
+          )}
+          {!allreadyAsk ? 
+            (<button onClick={generateOptions} style={{ marginTop: "20px" }}>
+              Pedir opciones
+            </button>)
+            : (<dir></dir>)
+            }
+          <div>
+            <p>Aciertos: {score.correct} | Errores: {score.incorrect}</p>
+            {/* <p>Errores: {score.incorrect}</p> */}
+            <p>SCORE: {finalScore}  | Record: {maxScore}</p>
+            {/* <p>Record: {maxScore}</p> */}
+          </div>
+          <button onClick={() => {setGameStarted(false);setInputMode(true);setAllreadyAsk(false)}}>Reiniciar</button>
         </div>
       )}
-      <button onClick={generateOptions} style={{ marginTop: "20px" }}>
-        Pedir opciones
-      </button>
-      <div className="scoreboard">
-        {checkMaxScore()}
-        <p>Aciertos: {score.correct}</p>
-        <p>Errores: {score.incorrect}</p>
-        <p>SCORE: {finalScore}</p>
-        <p>Record: {maxScore}</p>
-      </div>
     </div>
   );
 };
